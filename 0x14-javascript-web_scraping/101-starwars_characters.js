@@ -1,22 +1,28 @@
 t request = require('request');
 
-function helpRequest (arr, i) {
-	  if (i === arr.length) {
-		      return;
-		    }
-	  request(arr[i], function (error, response, body) {
-		      if (error) {
-			            console.error(error);
-			          }
-		      console.log(JSON.parse(body).name);
-		      helpRequest(arr, i + 1);
-		    });
-}
+const movieId = process.argv[2];
+const apiUrl = `https://swapi.dev/api/films/${movieId}/`;
 
-request('https://swapi-api.hbtn.io/api/films/' + process.argv[2], function (error, response, body) {
+request(apiUrl, (error, response, body) => {
 	  if (error) {
-		      console.error(error);
-		    }
-	  const charac = JSON.parse(body).characters;
-	  helpRequest(charac, 0);
+		      console.error('Error:', error);
+		    } else if (response.statusCode !== 200) {
+			        console.error('Unexpected status code:', response.statusCode);
+			      } else {
+				          const film = JSON.parse(body);
+				          const charactersUrls = film.characters;
+				          charactersUrls.forEach((characterUrl) => {
+						        request(characterUrl, (charError, charResponse, charBody) => {
+								        if (charError) {
+										          console.error('Error fetching character:', charError);
+										        } else if (charResponse.statusCode !== 200) {
+												          console.error('Unexpected status code:', charResponse.statusCode);
+												        } else {
+														          const character = JSON.parse(charBody);
+														          console.log(character.name);
+														        }
+								      });
+						      });
+				        }
 });
+
